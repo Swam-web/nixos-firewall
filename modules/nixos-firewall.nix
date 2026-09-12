@@ -4,12 +4,16 @@
 # GUI GTK4 + applet COSMIC pour le pare-feu déclaratif NixOS.
 #
 # Usage :
-#   imports = [ github:Swam-web/nixos-firewall ];
+#   inputs.nixos-firewall.url = "github:Swam-web/nixos-firewall";
+#   imports = [ inputs.nixos-firewall.nixosModules.default ];
 #   programs.nixos-firewall = {
 #     enable = true;
-#     flake = "/persist/nixos";      # chemin de ton flake
-#     host = "intel";                # hôte du flake
-#     applet.enable = true;          # applet COSMIC (optionnel)
+#     # flake et host sont OPTIONNELS — auto-détectés :
+#     #   flake : /etc/nixos si présent, sinon chemin du flake courant
+#     #   host  : nom d'hôte de la machine
+#     flake = ./.;        # optionnel
+#     host = "myhost";    # optionnel
+#     applet.enable = true;
 #   };
 #
 # Le GUI écrit les ports dans <flake>/modules/firewall-ports.json, que ce
@@ -22,7 +26,18 @@
 let
   cfg = config.programs.nixos-firewall;
 
-  flakeDir = toString cfg.flake;
+  # --- Auto-détection (l'utilisateur n'a RIEN à configurer) -------------------
+  # flake : option explicite > /etc/nixos (emplacement standard)
+  flakeAuto =
+    if cfg.flake != null then toString cfg.flake
+    else "/etc/nixos";
+  # host : option explicite > nom d'hôte de la machine (config.networking.hostName)
+  hostAuto =
+    if cfg.host != null then cfg.host
+    else if config.networking.hostName != "" then config.networking.hostName
+    else "localhost";
+
+  flakeDir = flakeAuto;
   defaultJson = flakeDir + "/modules/firewall-ports.json";
   jsonFile = if cfg.firewallJsonFile != null then cfg.firewallJsonFile else defaultJson;
 
@@ -89,7 +104,7 @@ let
           cat > $out/bin/$name <<EOF
       #!/bin/sh
       export FIREWALL_FLAKE="${flakeDir}"
-      export FIREWALL_HOST="${cfg.host}"
+      export FIREWALL_HOST="${hostAuto}"
       export FIREWALL_JSON="${toString jsonFile}"
       exec ${pkg}/bin/\$name "\$@"
       EOF
@@ -108,15 +123,24 @@ in
     enable = lib.mkEnableOption "NixOS Firewall (GTK4 manager + COSMIC applet)";
 
     flake = lib.mkOption {
-      type = lib.types.path;
-      example = "/persist/nixos";
-      description = "Path of your NixOS flake (for nix eval / nixos-rebuild).";
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      example = ./.;
+      description = ''
+        Path of your NixOS flake (for nix eval / nixos-rebuild).
+        Optional — auto-detected when null: /etc/nixos if present.
+      '';
     };
 
     host = lib.mkOption {
-      type = lib.types.str;
-      example = "intel";
-      description = "Host attribute of your flake (nixosConfigurations.<host>).";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "myhost";
+      description = ''
+        Host attribute of your flake (nixosConfigurations.<host>).
+        Optional — auto-detected when null: this machine's hostname
+        (config.networking.hostName).
+      '';
     };
 
     firewallJsonFile = lib.mkOption {
