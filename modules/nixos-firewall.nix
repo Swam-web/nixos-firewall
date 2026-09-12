@@ -94,20 +94,23 @@ let
     }
   '';
 
-  # Wrapper fixant l'environnement (flake/hôte/JSON) pour GUI et applet
+  # Wrapper fixant l'environnement (flake/hôte/JSON) pour GUI et applet.
+  # IMPORTANT : heredoc NON quoté → les variables nix ${pkg} sont substituées
+  # au build ; les variables runtime utilisent \$ pour arriver au shell.
   envWrapper = pkg:
     pkgs.runCommand "${pkg.name or pkg.pname or "env"}-wrapped" { }
       ''
         mkdir -p $out/bin
         for exe in ${pkg}/bin/*; do
           name=$(basename "$exe")
-          cat > $out/bin/$name <<EOF
+          cat > $out/bin/$name <<'INNER'
       #!/bin/sh
       export FIREWALL_FLAKE="${flakeDir}"
       export FIREWALL_HOST="${hostAuto}"
       export FIREWALL_JSON="${toString jsonFile}"
-      exec ${pkg}/bin/\$name "\$@"
-      EOF
+      exec "${pkg}/bin/SCRIPT_NAME" "$@"
+      INNER
+          sed -i "s|SCRIPT_NAME|$name|" $out/bin/$name
           chmod +x $out/bin/$name
         done
         ln -s ${pkg}/share $out/share 2>/dev/null || true
