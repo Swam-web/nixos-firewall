@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Bouclier pare-feu : dégradé bleu, briques de pare-feu stylisées -->
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3584e4"/>
+      <stop offset="1" stop-color="#1c3d6e"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 8 L112 24 V60 C112 92 92 110 64 120 C36 110 16 92 16 60 V24 Z"
+        fill="url(#shield)" stroke="#1c3d6e" stroke-width="4"/>
+  <!-- briques -->
+  <g fill="#ffffff" opacity="0.92">
+    <rect x="40" y="44" width="20" height="12" rx="2"/>
+    <rect x="68" y="44" width="20" height="12" rx="2"/>
+    <rect x="52" y="62" width="24" height="12" rx="2"/>
+    <rect x="40" y="80" width="20" height="12" rx="2"/>
+    <rect x="68" y="80" width="20" height="12" rx="2"/>
+  </g>
+</svg>

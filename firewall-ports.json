@@ -1,0 +1,12 @@
+# JSON de ports géré par le GUI — consommé par modules/nixos-firewall.nix.
+# Format :
+#   enable   : pare-feu activé/désactivé
+#   tcp/udp  : [{ port, desc, dir }]        dir = "in" | "out" | "both"
+#   tcpRanges/udpRanges : [{ from, to, desc, dir }]
+{
+  "enable": true,
+  "tcp": [],
+  "udp": [],
+  "tcpRanges": [],
+  "udpRanges": []
+}

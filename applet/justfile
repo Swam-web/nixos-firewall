@@ -1,0 +1,18 @@
+# Justfile calqué sur le modèle officiel des applets COSMIC (cf. minimon)
+# nixpkgs passe : just --set prefix <out> --set bin-src target/.../release/cosmic-applet-firewall install
+
+name := 'cosmic-applet-firewall'
+
+prefix := '/usr'
+bin-src := 'target' / 'release' / name
+
+desktop-src := 'data' / name + '.desktop'
+desktop-dst := prefix / 'share' / 'applications' / name + '.desktop'
+
+default:
+    @just --list
+
+# Installe le binaire et le .desktop
+install:
+    install -Dm0755 {{bin-src}} {{prefix}}/bin/{{name}}
+    install -Dm0644 {{desktop-src}} {{desktop-dst}}

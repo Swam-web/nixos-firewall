@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Pare-feu
+Name[fr]=Pare-feu
+Comment=État du pare-feu (vert = actif, rouge = désactivé)
+Type=Application
+Exec=cosmic-applet-firewall
+Icon=security-high-symbolic
+Terminal=false
+Categories=COSMIC;
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicHoverPopup=End
+X-OverflowPriority=10

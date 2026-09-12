@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v18
+
+      - name: Build firewall-gui
+        run: nix -L build .#firewall-gui
+
+      - name: Build cosmic-applet-firewall
+        run: nix -L build .#cosmic-applet-firewall
+
+      - name: Evaluate NixOS module
+        run: |
+          nix eval --json .#nixosModules.default --apply 'm: builtins.isFunction m'

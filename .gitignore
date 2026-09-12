@@ -1,0 +1,15 @@
+# Nix artifacts
+result
+result-*
+
+# Python
+__pycache__/
+*.pyc
+
+# Rust
+target/
+
+# Editors
+.idea/
+.vscode/
+*.swp
