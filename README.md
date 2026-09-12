@@ -4,46 +4,80 @@
 
 - **GUI** (`firewall-gui`): manage ports/ranges (TCP/UDP, incoming/outgoing/both), enable/disable the firewall, view effective configuration, status and rejected-packet journal. Pure GTK4 — works on COSMIC, GNOME, KDE Plasma, XFCE, sway...
 - **Applet** (`cosmic-applet-firewall`): COSMIC panel applet, shield icon — green = active, red = disabled. Click opens the GUI. Optional.
-- **Declarative**: the GUI writes `firewall-ports.json`, the NixOS module imports it. Apply with `nixos-rebuild` (validated build, then sudo switch from a terminal).
+- **Declarative**: the GUI writes `firewall-ports.json`, the NixOS module imports it. Apply with `nixos-rebuild`.
 
-## Install
+## Install — copy & paste
 
-### 1. Add the flake input
+### 1. In `flake.nix`, add the input and the module
 
 ```nix
-# flake.nix
 {
-  inputs.nixos-firewall.url = "github:Swam-web/nixos-firewall";
-}
-```
+  # ... your existing inputs ...
+  inputs.nixos-firewall = {
+    url = "github:Swam-web/nixos-firewall";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 
-### 2. Import the module
-
-```nix
-# your NixOS configuration
-{ inputs, ... }: {
-  imports = [ inputs.nixos-firewall.nixosModules.default ];
-
-  programs.nixos-firewall = {
-    enable = true;
-    flake = ./.;        # your flake (or any path like /etc/nixos)
-    host = "myhost";    # nixosConfigurations.<host>
+  outputs = { self, nixpkgs, nixos-firewall, ... }@inputs: {
+    nixosConfigurations.myhost = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ./configuration.nix
+        nixos-firewall.nixosModules.default   # <-- add this line
+      ];
+    };
   };
 }
 ```
 
-- **flake**: where your NixOS configuration lives. `./.` works inside a flake, or use an absolute path.
-- **host**: the attribute name of your machine in `nixosConfigurations` (the one you use in `nixos-rebuild switch --flake .#myhost`). If omitted, the machine's hostname is used.
+### 2. In your NixOS configuration, enable it
 
-The COSMIC applet is enabled by default — set `applet.enable = false` if you don't use COSMIC.
-
-### 3. Rebuild
-
-```sh
-nixos-rebuild switch --flake .#myhost
+```nix
+{
+  programs.nixos-firewall.enable = true;
+}
 ```
 
-The application appears in your app launcher as **Firewall Manager** (and in the COSMIC panel as a shield icon).
+That's all — done.
+
+### 3. Rebuild and switch
+
+```sh
+sudo nixos-rebuild switch --flake .#myhost
+```
+
+The app appears in your launcher as **Firewall Manager**, and the shield applet in the COSMIC panel.
+
+## How it works
+
+1. **Add a port or range** in the GUI (protocol, direction: incoming / outgoing / both, description).
+2. The entry is saved in `<flake>/modules/firewall-ports.json`.
+3. **Validate build** (no sudo) — checks the configuration.
+4. **Apply** — opens a terminal with the sudo rebuild command.
+5. On rebuild, the module imports the JSON: `incoming` feeds the native `networking.firewall`, `outgoing`/`both` go to a dedicated nftables output table.
+
+The firewall stays fully declarative — the GUI never touches runtime state, it edits the source of truth and rebuilds.
+
+## Options (all optional)
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `enable` | `false` | Enable the module |
+| `flake` | `/etc/nixos` | Your NixOS flake path — **set it only if your config lives elsewhere** |
+| `host` | machine hostname | `nixosConfigurations.<host>` — only if different from your hostname |
+| `applet.enable` | `true` | COSMIC panel applet (set `false` on GNOME/KDE) |
+| `firewallJsonFile` | `<flake>/modules/firewall-ports.json` | Custom JSON path |
+
+Example — config outside `/etc/nixos`, hostname different from flake attribute:
+
+```nix
+programs.nixos-firewall = {
+  enable = true;
+  flake = "/persist/nixos";
+  host = "myhost";
+  applet.enable = false;   # not on COSMIC
+};
+```
 
 ## Try it without installing
 
@@ -51,38 +85,16 @@ The application appears in your app launcher as **Firewall Manager** (and in the
 nix run github:Swam-web/nixos-firewall#firewall-gui
 ```
 
-Standalone mode: the GUI reads `FIREWALL_FLAKE`/`FIREWALL_HOST` environment variables, and falls back to auto-detection (`/etc/nixos`, then the machine hostname) — so it also works launched outside the module.
-
-## How it works
-
-1. **Add a port/range** in the GUI (protocol, direction incoming/outgoing/both, description).
-2. The entry is saved in `<flake>/modules/firewall-ports.json` (path configurable via `firewallJsonFile`).
-3. **Validate build** (no sudo) — `nixos-rebuild build` checks the configuration.
-4. **Apply** — opens a terminal with `sudo nixos-rebuild switch`.
-5. The NixOS module imports the JSON: `dir: "in"` entries feed `networking.firewall` (native NixOS options), `out`/`both` entries go to a dedicated nftables output table.
-
-The firewall stays **declarative**: the GUI never touches runtime state, it edits the source of truth and rebuilds.
-
-## Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `programs.nixos-firewall.enable` | `false` | Enable the module |
-| `programs.nixos-firewall.flake` | auto-detected | Path of your NixOS flake |
-| `programs.nixos-firewall.host` | machine hostname | Flake host (`nixosConfigurations.<host>`) |
-| `programs.nixos-firewall.firewallJsonFile` | `<flake>/modules/firewall-ports.json` | Custom JSON path |
-| `programs.nixos-firewall.applet.enable` | `true` | COSMIC panel applet |
-
-## i18n
-
-The GUI follows the system language automatically: **français / English** (more languages welcome — add a dict in `gui/app.py`).
-
 ## Packages
 
 ```sh
 nix build github:Swam-web/nixos-firewall#firewall-gui
 nix build github:Swam-web/nixos-firewall#cosmic-applet-firewall
 ```
+
+## Languages
+
+The GUI follows the system language automatically: **français / English** (add a dict in `gui/app.py` for more).
 
 ## License
 
